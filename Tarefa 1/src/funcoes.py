@@ -81,8 +81,3 @@ def duplicarDiretorio(diretorio):
         diretorio[i] = '0'+diretorio[i]
 
 
-diretorioEntradas = ['00','01','10','11']
-
-print(diretorioEntradas)
-duplicarDiretorio(diretorioEntradas)
-print(diretorioEntradas)
