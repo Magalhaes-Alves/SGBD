@@ -3,7 +3,7 @@
 Mascara de bits
 Retorna os exatos b ultimos bits de um inteiro
 """ 
-import readline, shutil, tempfile
+import  shutil, tempfile
 
 def mascara(inteiro, b):
     mask = 2**(b)-1
@@ -73,3 +73,16 @@ def inserir(id_vinho,chave_busca,bucket):
     else:
         pass    
 
+def duplicarDiretorio(diretorio):
+
+    tamanho_anterior= len(diretorio)
+    for i in range(tamanho_anterior):
+        diretorio.append('1'+diretorio[i])
+        diretorio[i] = '0'+diretorio[i]
+
+
+diretorioEntradas = ['00','01','10','11']
+
+print(diretorioEntradas)
+duplicarDiretorio(diretorioEntradas)
+print(diretorioEntradas)
