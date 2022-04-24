@@ -73,11 +73,11 @@ def inserir(id_vinho,chave_busca,bucket):
     else:
         pass    
 
-def duplicarDiretorio(diretorio):
+def duplicarDiretorio(diretorio,bucket):
 
     tamanho_anterior= len(diretorio)
     for i in range(tamanho_anterior):
-        diretorio.append('1'+diretorio[i])
-        diretorio[i] = '0'+diretorio[i]
-
+        diretorio.append(diretorio[i])
+    diretorio[bucket+tamanho_anterior] = '1' + diretorio[bucket]
+    diretorio[bucket] = '0' + diretorio[bucket] 
 
