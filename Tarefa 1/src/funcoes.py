@@ -14,9 +14,9 @@ def funcaoHashing(chave_busca):
     return bin(chave_busca)
 
 
-def buscarBucket(chave_busca,bucket):
+def buscarBucket(chave_busca,bucket,diretorio):
     dados_bucket = []
-    with open(bucket,'r') as dados:
+    with open(diretorio[bucket] + '.txt','r') as dados:
         dados.readline()
         eof = False
         
@@ -46,8 +46,9 @@ def busca(chave, diretorio, pg):
     return  buscarBucket(chave, endereco_bucket+'.txt')
   
 
-def inserir(id_vinho,chave_busca,bucket):
-  with open(bucket,'r') as dados:
+def inserir(id_vinho,chave_busca,bucket,diretorio):
+  
+  with open(diretorio[bucket] + '.txt','r') as dados:
     pl_reg =dados.readline() 
     pl_reg= pl_reg.split(',') #[0] = pl ; [1] = qntd registro     
     
@@ -68,16 +69,66 @@ def inserir(id_vinho,chave_busca,bucket):
                 else:
                     out.write(pl_reg)
             out.write(f"{id_vinho},{chave_busca}\n")
-        shutil.move(out.name, bucket)
+        shutil.move(out.name, diretorio[bucket] + '.txt')
 
+    elif pl_reg[0]>=len(diretorio)/2:
+        tam = len(diretorio)
+        duplicarDiretorio(diretorio,bucket)
+        divisaoBucket(bucket, bucket+ tam, diretorio)    
     else:
-        pass    
+        divisaoBucket()
 
 def duplicarDiretorio(diretorio,bucket):
 
     tamanho_anterior= len(diretorio)
+    pl = len(diretorio[bucket])
+
     for i in range(tamanho_anterior):
         diretorio.append(diretorio[i])
-    diretorio[bucket+tamanho_anterior] = '1' + diretorio[bucket]
-    diretorio[bucket] = '0' + diretorio[bucket] 
 
+    diretorio[bucket+tamanho_anterior] = '1' + diretorio[bucket]
+    
+    with open(diretorio[bucket]+'.txt','r') as arq:
+        pl_reg =arq.readlines()
+    
+    with open(diretorio[bucket]+'.txt','w') as arq:
+        arq.write(f"{pl+1},{pl_reg[0].split(',')[1]}")
+        for registro in pl_reg[1:]:
+            arq.write(registro)
+    shutil.move(diretorio[bucket] + '.txt','0' + diretorio[bucket] + '.txt')
+   
+    diretorio[bucket] = '0' + diretorio[bucket] 
+    
+    #Criando o novo bucket para o bucket correspondente que disparou a duplicacao de diretorio
+    with open(diretorio[bucket+tamanho_anterior]+'.txt','w') as bucketNovo:
+        bucketNovo.write(f"{pl+1},0\n")
+    print(diretorio)
+
+
+def divisaoBucket(bucketAntigo,bucketNovo,diretorio):
+    pl = len(diretorio[bucketAntigo])
+    
+    
+    #Isto é o equivalente a carregar o bucket para a memória principal para que se possa fazer a divisao
+    with open(diretorio[bucketAntigo] + '.txt','r') as arq:
+        registros = arq.readlines()[1:]
+    
+    with open(diretorio[bucketAntigo] + '.txt','w') as arq:
+        arq.write(f"{pl},0\n")
+
+    with open(diretorio[bucketNovo] + '.txt','w') as arq:
+        arq.write(f"{pl},0\n")
+
+    for registro in registros:
+        dados = registro.split(',')
+        chave = int(dados[1][:-1])
+        enderecoDiretorio = mascara(chave, pl)
+        if(enderecoDiretorio==bucketAntigo):
+            inserir(dados[0], chave,bucketAntigo, diretorio)
+        else:
+            inserir(dados[0], chave, bucketNovo, diretorio)
+
+diretorio = ['00','01','10','11']
+
+duplicarDiretorio(diretorio,0)
+#divisaoBucket(0,2,diretorio)
