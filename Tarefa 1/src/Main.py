@@ -47,10 +47,12 @@ with open("in.txt",'r') as entrada, open("out.txt",'w') as saida:
                     else:
                         dados_vinho = registro.split(',')
                         if(chave == dados_vinho[2]):
-                            funcoes.inserir(dados_vinho[0], dados_vinho[1], diretorioEntradas[funcoes.mascara(int(chave), profundidadeGlobal)]+'.txt',diretorio)
+                            profundidadeGlobal = funcoes.inserir(dados_vinho[0], dados_vinho[1], diretorioEntradas[funcoes.mascara(int(chave), profundidadeGlobal)]+'.txt',diretorio)
             
         elif operacao[0][0:3]== "REM":
-            #Fazer remoção
+            chave = operacao[1][:-1]
+            print(chave)
+            #funcoes.remover(diretorio,chave)
             pass
         elif operacao[0][0:2]== "BUS":
             #Fazer busca
