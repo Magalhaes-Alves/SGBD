@@ -132,3 +132,29 @@ diretorio = ['00','01','10','11']
 
 duplicarDiretorio(diretorio,0)
 #divisaoBucket(0,2,diretorio)
+
+def removerBucket(indice_bucket,chave):
+    with open(indice_bucket,'r') as bucket:
+        tuplas = bucket.readlines()
+    pl= tuplas[0].split(",")[0]
+    
+    for i in range(1,len(tuplas)):
+        if(tuplas[i].split()[1] ==str(chave)):
+            tuplas.pop(i)
+    with open(indice_bucket,"w") as bucket_alterado:
+        tuplas[0] =f"{pl},{len(tuplas)-1}"
+        for i in tuplas:
+            bucket_alterado.write(i)
+    return len(tuplas)
+
+
+
+
+def remover(diretorio,chave_busca,pg):
+
+    indice_bucket = enderecoBucket(chave_busca, pg)
+
+    removerBucket(diretorio[indice_bucket]+".txt",chave)
+
+
+    pass
