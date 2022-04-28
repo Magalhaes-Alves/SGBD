@@ -52,7 +52,7 @@ with open("in.txt",'r') as entrada, open("out.txt",'w') as saida:
         elif operacao[0][0:3]== "REM":
             chave = operacao[1][:-1]
             print(chave)
-            remover(diretorio,chave)
+            #remover(diretorio,chave)
             pass
         elif operacao[0][0:2]== "BUS":
             #Fazer busca
