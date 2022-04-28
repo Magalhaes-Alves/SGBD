@@ -1,22 +1,19 @@
+import  shutil, tempfile
+from math import log2
+from os import remove
+
 
 """ 
 Mascara de bits
 Retorna os exatos b ultimos bits de um inteiro
 """ 
-from distutils import dir_util
-import  shutil, tempfile
-from math import log2
-from os import remove
-
 def mascara(inteiro, b):
     mask = 2**(b)-1
     return inteiro & mask
 
 
-def funcaoHashing(chave_busca):
-    return bin(chave_busca)
-
-
+"""
+Busca no b"""
 def buscarBucket(chave_busca,bucket,diretorio):
     dados_bucket = []
     with open(diretorio[bucket] + '.txt','r') as dados:
@@ -51,14 +48,14 @@ def busca(chave, diretorio, pg):
 
 def inserir(id_vinho,chave_busca,bucket,diretorio):
     profundidadeGlobal = log2(len(diretorio))
-  
+    
     with open(diretorio[bucket] + '.txt','r') as arq:
         pl_reg =arq.readline() 
         pl_reg= pl_reg.split(',') #[0] = pl ; [1] = qntd registro     
         registros = arq.readlines()
-    
+
     if(int(pl_reg[1][:-1])<32):
-        #Passo para adicionar em um a quantidade de registros no conteudo da linha
+        #Passo para somar um a quantidade de registros no conteudo da linha
         quantidade_registros = pl_reg[1][:-1]
         quantidade_registros = int(quantidade_registros) +1
         pl_reg[1] = str(quantidade_registros)
@@ -71,21 +68,23 @@ def inserir(id_vinho,chave_busca,bucket,diretorio):
         shutil.move(out.name, diretorio[bucket] + '.txt')
 
     elif int(pl_reg[0])>=profundidadeGlobal:
-        tam = len(diretorio)
+        tam = len(diretorio)//2
         duplicarDiretorio(diretorio,bucket)
+        
         profundidadeGlobal+=1
-        if(int(len(diretorio)//2)>=bucket):
-            divisaoBucket(bucket, bucket - tam, diretorio, True)  
+        if(int(len(diretorio)//2)<=bucket):
+            divisaoBucket(bucket, bucket - len(diretorio)//2, diretorio, True)  
         else:
-            divisaoBucket(bucket, bucket + tam, diretorio, True)
-        inserir(id_vinho,chave_busca,bucket,diretorio)
+            divisaoBucket(bucket, bucket + len(diretorio)//2, diretorio, True)
+        inserir(id_vinho,chave_busca,mascara(int(chave_busca),len(diretorio[bucket])),diretorio)
     else:
         if(int(len(diretorio)/2)<=bucket):
-            divisaoBucket(bucket,bucket-int(len(diretorio)/2),diretorio)
+            divisaoBucket(bucket,bucket-int(len(diretorio)//2),diretorio)
         else:
-            divisaoBucket(bucket,bucket+int(len(diretorio)/2),diretorio)
+            divisaoBucket(bucket,bucket+int(len(diretorio)//2),diretorio)
         
-    return profundidadeGlobal
+    return int(profundidadeGlobal)
+
 
 def duplicarDiretorio(diretorio,bucket):
 
@@ -108,7 +107,7 @@ def duplicarDiretorio(diretorio,bucket):
         for registro in pl_reg[1:]:
             arq.write(registro)
 
-    if(int(len(diretorio)/2)<=bucket):
+    if(int(len(diretorio)//2)<=bucket):
         shutil.move(diretorio[bucket] + '.txt','1' + diretorio[bucket] + '.txt')
    
         diretorio[bucket] = '1' + diretorio[bucket] 
@@ -117,7 +116,6 @@ def duplicarDiretorio(diretorio,bucket):
    
         diretorio[bucket] = '0' + diretorio[bucket] 
     
-    print("Teste duplicar")
     #Criando o novo bucket para o bucket correspondente que disparou a duplicacao de diretorio
     if(int(len(diretorio)/2)>=bucket):
         with open(diretorio[bucket-tamanho_anterior]+'.txt','w') as bucketNovo:
@@ -133,42 +131,56 @@ def divisaoBucket(bucketAntigo,bucketNovo,diretorio, diretorioDuplicado = False)
     #Isto é o equivalente a carregar o bucket para a memória principal para que se possa fazer a divisao
     with open(diretorio[bucketAntigo] + '.txt','r') as arq:
         registros = arq.readlines()[1:]
+    
+    if(diretorioDuplicado):
+        arq1 = open(diretorio[bucketAntigo] + '.txt','w')
+        arq2 = open(diretorio[bucketNovo] + '.txt','w')
 
-    with open(diretorio[bucketAntigo] + '.txt','w') as arq1,open(diretorio[bucketNovo] + '.txt','w') as arq2 :
-        if(diretorioDuplicado):
-            arq1.write(f"{pl},0\n")
-            arq2.write(f"{pl},0\n")
+        arq1.write(f"{pl},0\n")
+        arq2.write(f"{pl},0\n")
+
+        arq1.close()
+        arq2.close()
+    else:
+        arq1 = open(diretorio[bucketAntigo] + '.txt','w')
+        arq1.write(f"{int(pl) + 1},0\n")
+        arq1.close()
+
+        if(int(len(diretorio)/2)<=bucketAntigo):
+            shutil.move(diretorio[bucketAntigo]+'.txt', '1'+diretorio[bucketAntigo]+'.txt')
+            diretorio[bucketAntigo] = '1' + diretorio[bucketAntigo]
+
+            diretorio[bucketNovo] = '0' + diretorio[bucketNovo]
+            with open(diretorio[bucketNovo]+'.txt','w') as arq:
+                arq.write(f"{pl+1},0\n")
         else:
-            arq1.write(f"{int(pl) + 1},0\n")
-            if(int(len(diretorio)/2)<=bucketAntigo):
-                shutil.move(diretorio[bucketAntigo]+'.txt', '1'+diretorio[bucketAntigo]+'.txt')
-                diretorio[bucketAntigo] = '1' + diretorio[bucketAntigo]
+            shutil.move(diretorio[bucketAntigo]+'.txt', '0'+diretorio[bucketAntigo]+'.txt')
+            diretorio[bucketNovo] = '1' + diretorio[bucketNovo]
 
-                diretorio[bucketNovo] = '0' + diretorio[bucketNovo]
-                with open(diretorio[bucketNovo]+'.txt','w') as arq:
-                    arq.write(f"{pl+1},0\n")
-            else:
-                shutil.move(diretorio[bucketNovo]+'.txt', '1'+diretorio[bucketNovo]+'.txt')
-                diretorio[bucketNovo] = '1' + diretorio[bucketNovo]
-
-                diretorio[bucketAntigo] = '0' + diretorio[bucketAntigo]
-                with open(diretorio[bucketNovo]+'.txt','w') as arq:
-                    arq.write(f"{pl+1},0\n")
+            diretorio[bucketAntigo] = '0' + diretorio[bucketAntigo]
+            with open(diretorio[bucketNovo]+'.txt','w') as arq:
+                arq.write(f"{pl+1},0\n")
 
     for registro in registros:
+       
         dados = registro.split(',')
         chave = int(dados[1][:-1])
-        enderecoDiretorio = mascara(chave, pl+1)
+        
+        if(diretorioDuplicado):
+            enderecoDiretorio = mascara(chave, pl)
+        else:
+            enderecoDiretorio = mascara(chave, pl+1)
         if(diretorio[enderecoDiretorio]==diretorio[bucketAntigo]):
             inserir(dados[0], chave,bucketAntigo, diretorio)
         else:
             inserir(dados[0], chave, bucketNovo, diretorio)
 
+
 def removerBucket(indice_bucket,chave):
     with open(indice_bucket,'r') as bucket:
         tuplas = bucket.readlines()
     pl= tuplas[0].split(",")[0]
-    
+    tam_original = len(tuplas) - 1
     for tupla in tuplas[1:]:
         if(tupla.split(",")[1][:-1] == str(chave)):
             tuplas.remove(tupla)
@@ -179,9 +191,7 @@ def removerBucket(indice_bucket,chave):
         for i in tuplas:
             bucket_alterado.write(i)
             
-    return (pl,len(tuplas)-1)
-
-
+    return (tam_original,len(tuplas)-1)
 
 
 def remover(diretorio,chave_busca):
@@ -203,9 +213,8 @@ def remover(diretorio,chave_busca):
         #Agora, deve-se verificar se um bucket consegue comportar as entradas dos dois.
         with open(diretorio[indice_bucket_amigo]+'.txt', 'r') as arq:
             registrosBucketAmigo = int(arq.readline().split(',')[1][:-1] )
-        """print(f"{type(registrosBucketAmigo)}:{registrosBucketAmigo}")
-        print(f"{type(registros_atuais)}:{registros_atuais}")"""
-        if(registros_atuais[1]+registrosBucketAmigo<=32):
+
+        if(registros_atuais[1]+registrosBucketAmigo<=32 and pg>2):
             #Se passa por este teste, então um bucket consegue comportar as entradas
             #Agora, deve-se verificar se todos os buckets da segunda metade do diretório tem profundidade
             #local menor que a global
@@ -216,9 +225,15 @@ def remover(diretorio,chave_busca):
                     quantidade_teste += 1
             if(quantidade_teste==1):
                 #Significa que só há um bucket com pg==pl, logo o diretório pode ser reduzido
+                FundirBucket(indice_bucket,indice_bucket_amigo,diretorio,True)
+            else:
+                #Significa que há mais de um bucket com pg==pl, então só pode fundir os buckets
                 FundirBucket(indice_bucket,indice_bucket_amigo,diretorio)
+    return registros_atuais[0] - registros_atuais[1]        
 
-def FundirBucket(indice_bucket, indice_bucket_amigo, diretorio):
+
+def FundirBucket(indice_bucket, indice_bucket_amigo, diretorio, reduzirDiretorio = False):
+    
     if(indice_bucket<indice_bucket_amigo):
         indiceUsado = indice_bucket
         indiceRemovido = indice_bucket_amigo
@@ -230,12 +245,12 @@ def FundirBucket(indice_bucket, indice_bucket_amigo, diretorio):
         pl_reg = arq1.readline().split(',')
         profundidadeLocal = int(pl_reg[0])
         quantRegistros1 = int(pl_reg[1][:-1])
-        print(f"Quantidade de registros 1:{quantRegistros1}")
+
         registros1 = arq1.readlines()
-        print(registros1)
+
 
         quantRegistros2 = int(arq2.readline().split(',')[1][:-1])
-        print(f"Quantidade de registros 1:{quantRegistros2}")
+    
         registros2 = arq2.readlines()
 
     with open(diretorio[indiceUsado]+'.txt', 'w') as arq:
@@ -248,29 +263,13 @@ def FundirBucket(indice_bucket, indice_bucket_amigo, diretorio):
             arq.write(registro)
 
     shutil.move(diretorio[indiceUsado]+'.txt', diretorio[indiceUsado][1:]+'.txt')
-    diretorio[indiceUsado] = diretorio[indiceUsado][1:]
-    
+
     remove('./'+diretorio[indiceRemovido] +'.txt')
+    diretorio[indiceUsado] = diretorio[indiceUsado][1:]
+    diretorio[indiceRemovido] = diretorio[indiceRemovido][1:]
     
     tamDiretorio = len(diretorio)
-    for registro in diretorio[tamDiretorio//2:]:
-        diretorio.remove(registro)
+    if(reduzirDiretorio):
+        for registro in diretorio[tamDiretorio//2:]:
+            diretorio.remove(registro)
 
-
-diretorio = ['00','01','10','11']
-for nome in diretorio:
-    with open(nome + '.txt', 'w') as arq:
-        arq.write('2,0\n')
-
-for i in range(33):
-    inserir(80+i, 0+4*(i%2),0, diretorio)
-
-for i in range(5):
-    inserir(81,12,4,diretorio)
-'''for i in range(33):
-    inserir(80+i, 2+4*(i%2), 6, diretorio)
-print(diretorio)'''
-
-remover(diretorio,4)
-
-print(diretorio)
