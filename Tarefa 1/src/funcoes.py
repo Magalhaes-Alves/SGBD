@@ -254,7 +254,7 @@ def FundirBucket(indice_bucket, indice_bucket_amigo, diretorio):
     
     tamDiretorio = len(diretorio)
     for registro in diretorio[tamDiretorio//2:]:
-        diretorio.pop(i)
+        diretorio.remove(registro)
 
 
 diretorio = ['00','01','10','11']
