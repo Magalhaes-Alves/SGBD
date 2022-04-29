@@ -13,9 +13,12 @@ def mascara(inteiro, b):
 
 
 """
-Busca no b"""
+Busca no bucket(acessa o arquivo corretamente conforme explicado em Main.py) pelas entradas com a chave
+de busca passada.
+O seu parametro bucket é a posição em que uma entrada com aquela chave de busca estará no diretorio"""
 def buscarBucket(chave_busca,bucket,diretorio):
     dados_bucket = []
+    #Carrega o bucket para memória principal
     with open(diretorio[bucket] + '.txt','r') as dados:
         dados.readline()
         eof = False
@@ -26,34 +29,23 @@ def buscarBucket(chave_busca,bucket,diretorio):
                 eof=True
             elif int(linha.split(',')[1])== chave_busca:
               dados_bucket.append(linha[:-1])
-        
+    #Retorna as tuplas com aquela chave de busca    
     return dados_bucket
 
 
-def enderecoBucket(chave,pg):
-    endereco_bucket = bin(mascara(chave,pg))[2:]
-
-  
-    if len(endereco_bucket)<pg:
-        endereco_bucket = '0' + endereco_bucket
-  
-    return endereco_bucket
-
-
-def busca(chave, diretorio, pg):
-    endereco_bucket = enderecoBucket(chave,pg)
-  
-    return  buscarBucket(chave, endereco_bucket+'.txt')
-  
-
 def inserir(id_vinho,chave_busca,bucket,diretorio):
+    #Pega a profundidade global atual do diretorio
     profundidadeGlobal = log2(len(diretorio))
     
+    #Carrega o bucket em que será feita a inserção para a memória principal
     with open(diretorio[bucket] + '.txt','r') as arq:
         pl_reg =arq.readline() 
         pl_reg= pl_reg.split(',') #[0] = pl ; [1] = qntd registro     
+        #Variável com as entradas de dados daquele bucket
         registros = arq.readlines()
 
+    #Verifica se o número de registros daquele bucket é menor que 32,pois,
+    # caso seja 32(capacidade de uma página),será necessário duplicar o diretório ou dividir o bucket 
     if(int(pl_reg[1][:-1])<32):
         #Passo para somar um a quantidade de registros no conteudo da linha
         quantidade_registros = pl_reg[1][:-1]
@@ -66,9 +58,10 @@ def inserir(id_vinho,chave_busca,bucket,diretorio):
                 out.write(registro)
             out.write(f"{id_vinho},{chave_busca}\n")
         shutil.move(out.name, diretorio[bucket] + '.txt')
-
+    #Caso a profundidade local daquele bucket cheio seja maior ou igual a global, é necessário duplicar o
+    #diretório
     elif int(pl_reg[0])>=profundidadeGlobal:
-        tam = len(diretorio)//2
+        #
         duplicarDiretorio(diretorio,bucket)
         
         profundidadeGlobal+=1
@@ -77,7 +70,13 @@ def inserir(id_vinho,chave_busca,bucket,diretorio):
         else:
             divisaoBucket(bucket, bucket + len(diretorio)//2, diretorio, True)
         inserir(id_vinho,chave_busca,mascara(int(chave_busca),len(diretorio[bucket])),diretorio)
+    #Caso não seja, basta fazer a divisão do bucket
     else:
+        """
+        Neste teste quero ver o seguinte:
+        Considere o diretorio ['00', '001', '10', '11', '00', '101', '10', '11']
+        Quero ver, por exemplo, se é o 10 da posição 2 ou da posição 6 para informar
+        a função de divisão"""
         if(int(len(diretorio)/2)<=bucket):
             divisaoBucket(bucket,bucket-int(len(diretorio)//2),diretorio)
         else:
@@ -90,10 +89,12 @@ def duplicarDiretorio(diretorio,bucket):
 
     tamanho_anterior= len(diretorio)
     pl = len(diretorio[bucket])
-
+    #Adiciona os mesmos indices
     for i in range(tamanho_anterior):
         diretorio.append(diretorio[i])
 
+    #Corrige o nome no diretorio no indice do bucket que disparou a dupliacação(Pois apenas
+    # ele precisa ser dividido no momento)
     if(int(len(diretorio)/2)<=bucket):
         diretorio[bucket-tamanho_anterior] = '0' + diretorio[bucket]
     else:
@@ -132,6 +133,7 @@ def divisaoBucket(bucketAntigo,bucketNovo,diretorio, diretorioDuplicado = False)
     with open(diretorio[bucketAntigo] + '.txt','r') as arq:
         registros = arq.readlines()[1:]
     
+    #Verifica se a operação foi chamada após a duplicação do diretorio
     if(diretorioDuplicado):
         arq1 = open(diretorio[bucketAntigo] + '.txt','w')
         arq2 = open(diretorio[bucketNovo] + '.txt','w')
@@ -142,6 +144,7 @@ def divisaoBucket(bucketAntigo,bucketNovo,diretorio, diretorioDuplicado = False)
         arq1.close()
         arq2.close()
     else:
+        #Neste trecho um novo bucket é criado e o outro bucket é renomeado conforme os parametros
         arq1 = open(diretorio[bucketAntigo] + '.txt','w')
         arq1.write(f"{int(pl) + 1},0\n")
         arq1.close()
@@ -160,7 +163,7 @@ def divisaoBucket(bucketAntigo,bucketNovo,diretorio, diretorioDuplicado = False)
             diretorio[bucketAntigo] = '0' + diretorio[bucketAntigo]
             with open(diretorio[bucketNovo]+'.txt','w') as arq:
                 arq.write(f"{pl+1},0\n")
-
+    #Insere entrada a entrada no bucket correto
     for registro in registros:
        
         dados = registro.split(',')
@@ -180,6 +183,7 @@ def removerBucket(indice_bucket,chave):
     with open(indice_bucket,'r') as bucket:
         tuplas = bucket.readlines()
     pl= tuplas[0].split(",")[0]
+    #Como o primeiro elemento de tuplas são as informações do bucket ,subtrai um abaixo
     tam_original = len(tuplas) - 1
     for tupla in tuplas[1:]:
         if(tupla.split(",")[1][:-1] == str(chave)):
@@ -234,6 +238,7 @@ def remover(diretorio,chave_busca):
 
 def FundirBucket(indice_bucket, indice_bucket_amigo, diretorio, reduzirDiretorio = False):
     
+    #Verifica qual o bucket amigo
     if(indice_bucket<indice_bucket_amigo):
         indiceUsado = indice_bucket
         indiceRemovido = indice_bucket_amigo
@@ -241,6 +246,7 @@ def FundirBucket(indice_bucket, indice_bucket_amigo, diretorio, reduzirDiretorio
         indiceUsado = indice_bucket_amigo
         indiceRemovido = indice_bucket
     
+    #Aqui os arquivos são abertos para carregar os buckets para a memória principal
     with open(diretorio[indiceUsado]+'.txt','r') as arq1, open(diretorio[indiceRemovido]+'.txt','r') as arq2:
         pl_reg = arq1.readline().split(',')
         profundidadeLocal = int(pl_reg[0])
@@ -252,7 +258,8 @@ def FundirBucket(indice_bucket, indice_bucket_amigo, diretorio, reduzirDiretorio
         quantRegistros2 = int(arq2.readline().split(',')[1][:-1])
     
         registros2 = arq2.readlines()
-
+    
+    #Coloca todas as entradas no bucket que sobrará
     with open(diretorio[indiceUsado]+'.txt', 'w') as arq:
         arq.write(f"{profundidadeLocal-1},{quantRegistros1+quantRegistros2}\n")
 
@@ -261,14 +268,17 @@ def FundirBucket(indice_bucket, indice_bucket_amigo, diretorio, reduzirDiretorio
         
         for registro in registros2:
             arq.write(registro)
-
+    #Renomea o arquivo do bucket que permanecerá
     shutil.move(diretorio[indiceUsado]+'.txt', diretorio[indiceUsado][1:]+'.txt')
 
+    #Remove o bucket que não será mais usado
     remove('./'+diretorio[indiceRemovido] +'.txt')
+    #Corrige os nomes dos arquivos em binario no diretorio
     diretorio[indiceUsado] = diretorio[indiceUsado][1:]
     diretorio[indiceRemovido] = diretorio[indiceRemovido][1:]
     
     tamDiretorio = len(diretorio)
+    #Se for necessário reduzir o diretorio,exclui os indices da segunda metade 
     if(reduzirDiretorio):
         for registro in diretorio[tamDiretorio//2:]:
             diretorio.remove(registro)
