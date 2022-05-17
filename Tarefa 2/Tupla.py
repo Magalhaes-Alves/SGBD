@@ -4,7 +4,10 @@ class Tupla():
         #Lista de Strings de tamanho qtd_colunas
     
     def adicionar_atributo(self, atrib):
-        self._cols.append(atrib)
+        colunas = atrib.split(',')
+        self._cols= colunas
     
-    def recuperar_tupla(self):
+    @property
+    def cols(self):
         return self._cols
+        
