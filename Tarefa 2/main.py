@@ -1,5 +1,6 @@
 # VOCE DEVE INCLUIR SUAS IMPORTACOES AQUI, CASO NECESSARIO!!!
-import Tabela,Operador
+from Tabela import Tabela
+from Operador import Operador
 
 
 def main():
@@ -9,7 +10,7 @@ def main():
     
     vinho.carregarDados() # le os dados do csv e add na estrutura da tabela, caso necessario
     uva.carregarDados()
-    pais.carregarDados()
+    #pais.carregarDados()
         
     ## DESCOMENTE A PROXIMA LINHA CASO SEU TRABALHO SEJA SELECAO:
     # op = Operador(vinho, ["ano_colheita", "uva_id"], ["1990", "0"])
@@ -34,10 +35,10 @@ def main():
 
     op.executar() # Realiza a operacao desejada
     
-    print("#Pags:", op.numPagsGeradas()) # Retorna a quantidade de paginas geradas pela operacao
-    print("#IOss:", op.numIOExecutados()) # Retorna a quantidade de IOs geradas pela operacao
-    print("#Tups:", op.numTuplasGeradas()) # Retorna a quantidade de tuplas geradas pela operacao
+    #print("#Pags:", op.numPagsGeradas()) # Retorna a quantidade de paginas geradas pela operacao
+    #print("#IOss:", op.numIOExecutados()) # Retorna a quantidade de IOs geradas pela operacao
+    #print("#Tups:", op.numTuplasGeradas()) # Retorna a quantidade de tuplas geradas pela operacao
     
-    op.salvarTuplasGeradas("selecao_vinho_ano_colheita_1990.csv") # Retorna as tuplas geradas pela operacao e salva em um csv
+    #op.salvarTuplasGeradas("selecao_vinho_ano_colheita_1990.csv") # Retorna as tuplas geradas pela operacao e salva em um csv
     
 main()
