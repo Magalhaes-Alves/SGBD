@@ -40,7 +40,7 @@ def hash(tabela, coluna, prefixo):
     #Seção para carregar o diretorio para a memoria principal
     try:
         #Tenta abrir o arquivo
-        diretorio = open(prefixo + "diretorio.txt","r")
+        diretorio = open(prefixo + "mamacodiretorio.txt","r")
         
         profundidadeGlobal =int(diretorio.readline()[:-1])
         
@@ -62,20 +62,33 @@ def hash(tabela, coluna, prefixo):
             with open(prefixo + nomeBucket+'.txt','w') as arq:
                 arq.write("2,0\n")
 
-    paginas = tabela._pages
-
+    paginas = tabela.pages
+    
+    """  if tabela.e == 1:
+        tamMaxBucket = 200
+    elif tabela._qtd_paginas < 40:
+        tamMaxBucket = 32
+    else:
+        tamMaxBucket = 12"""
+    tamMaxBucket = 32
+    i = 0
     for pagina in paginas:
-        for tupla in pagina._tuplas:
-            profundidadeGlobal = funcoes.inserir(tupla[coluna], int(tupla[coluna]), funcoes.mascara(int(tupla[coluna]), profundidadeGlobal),diretorioEntradas,prefixo)
-
+        tuplas = (tabela.deserializador(pagina)).tuplas
+        """ i+=1
+        if(i==7):
+            print(tuplas)"""
+        for tupla in tuplas:
+            i += 1
+            profundidadeGlobal = funcoes.inserir(tupla, coluna, funcoes.mascara(int(tupla[coluna]), profundidadeGlobal),diretorioEntradas,prefixo, tamMaxBucket)
+    
         """elif operacao[0][:3]== "BUS" and operacao[0][3] =='=':
             Fazer busca
             chave_busca = int(operacao[1][:-1])
             A variável tuplas armazena todas as tuplas buscadas
-            tuplas = funcoes.buscarBucket(chave_busca, funcoes.mascara(chave_busca,profundidadeGlobal), diretorioEntradas)"""
+            tuplas = funcoes.buscarBucket(chave_busca, funcoes.mascara(chave_busca,profundidadeGlobal), diretorioEntradas)
 
-    
-    #Abre em modo de escrita para salvar o diretorio após as operações especificadas em in.txt
+    """
+    print(f"Total de tuplas inseridas:{i}")
     with open(prefixo + 'diretorio.txt','w') as diretorioSaida:
         diretorioSaida.write(f"{profundidadeGlobal}\n")
 

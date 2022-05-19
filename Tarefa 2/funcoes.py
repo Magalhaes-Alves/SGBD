@@ -33,9 +33,10 @@ def buscarBucket(chave_busca,bucket,diretorio, prefixo):
     return dados_bucket
 
 
-def inserir(id_vinho,chave_busca,bucket,diretorio, prefixo):
+def inserir(tupla,coluna,bucket,diretorio, prefixo, tamMaximo):
     #Pega a profundidade global atual do diretorio
     profundidadeGlobal = log2(len(diretorio))
+    chave_busca = int(tupla[coluna])
     
     #Carrega o bucket em que será feita a inserção para a memória principal
     with open(prefixo + diretorio[bucket] + '.txt','r') as arq:
@@ -46,7 +47,7 @@ def inserir(id_vinho,chave_busca,bucket,diretorio, prefixo):
 
     #Verifica se o número de registros daquele bucket é menor que 32,pois,
     # caso seja 32(capacidade de uma página),será necessário duplicar o diretório ou dividir o bucket 
-    if(int(pl_reg[1][:-1])<12):
+    if(int(pl_reg[1][:-1])<tamMaximo):
         #Passo para somar um a quantidade de registros no conteudo da linha
         quantidade_registros = pl_reg[1][:-1]
         quantidade_registros = int(quantidade_registros) +1
@@ -56,20 +57,20 @@ def inserir(id_vinho,chave_busca,bucket,diretorio, prefixo):
             out.write(f"{pl_reg[0]},{pl_reg[1]}\n")
             for registro in registros:
                 out.write(registro)
-            out.write(f"{id_vinho},{chave_busca}\n")
+            out.write(f"{','.join(tupla)}\n")
         shutil.move(out.name,prefixo + diretorio[bucket] + '.txt')
     #Caso a profundidade local daquele bucket cheio seja maior ou igual a global, é necessário duplicar o
     #diretório
     elif int(pl_reg[0])>=profundidadeGlobal:
         #
-        duplicarDiretorio(diretorio,bucket, prefixo)
+        duplicarDiretorio(diretorio,bucket, prefixo, tamMaximo)
         
         profundidadeGlobal+=1
         if(int(len(diretorio)//2)<=bucket):
-            divisaoBucket(bucket, bucket - len(diretorio)//2, diretorio, prefixo, True)  
+            divisaoBucket(bucket, bucket - len(diretorio)//2, diretorio, prefixo, tamMaximo, coluna ,True)  
         else:
-            divisaoBucket(bucket, bucket + len(diretorio)//2, diretorio, prefixo, True)
-        inserir(id_vinho,chave_busca,mascara(int(chave_busca),len(diretorio[bucket])),diretorio, prefixo)
+            divisaoBucket(bucket, bucket + len(diretorio)//2, diretorio, prefixo,tamMaximo,coluna ,True)
+        inserir(tupla,coluna,mascara(int(chave_busca),len(diretorio[bucket])),diretorio, prefixo, tamMaximo)
     #Caso não seja, basta fazer a divisão do bucket
     else:
         """
@@ -78,14 +79,14 @@ def inserir(id_vinho,chave_busca,bucket,diretorio, prefixo):
         Quero ver, por exemplo, se é o 10 da posição 2 ou da posição 6 para informar
         a função de divisão"""
         if(int(len(diretorio)/2)<=bucket):
-            divisaoBucket(bucket,bucket-int(len(diretorio)//2),diretorio, prefixo)
+            divisaoBucket(bucket,bucket-int(len(diretorio)//2),diretorio, prefixo,tamMaximo, coluna)
         else:
-            divisaoBucket(bucket,bucket+int(len(diretorio)//2),diretorio, prefixo)
+            divisaoBucket(bucket,bucket+int(len(diretorio)//2),diretorio, prefixo, tamMaximo, coluna)
         
     return int(profundidadeGlobal)
 
 
-def duplicarDiretorio(diretorio, bucket, prefixo):
+def duplicarDiretorio(diretorio, bucket, prefixo, tamMaximo):
 
     tamanho_anterior= len(diretorio)
     pl = len(diretorio[bucket])
@@ -126,7 +127,7 @@ def duplicarDiretorio(diretorio, bucket, prefixo):
             bucketNovo.write(f"{pl+1},0\n")
     
 
-def divisaoBucket(bucketAntigo,bucketNovo,diretorio, prefixo, diretorioDuplicado = False):
+def divisaoBucket(bucketAntigo,bucketNovo,diretorio, prefixo,tamMaximo, coluna ,diretorioDuplicado = False):
     pl = len(diretorio[bucketAntigo])
     
     #Isto é o equivalente a carregar o bucket para a memória principal para que se possa fazer a divisao
@@ -167,16 +168,17 @@ def divisaoBucket(bucketAntigo,bucketNovo,diretorio, prefixo, diretorioDuplicado
     for registro in registros:
        
         dados = registro.split(',')
-        chave = int(dados[1][:-1])
-        
+        dados[len(dados)-1] = dados[len(dados)-1][:-1]
+        chave = int(dados[coluna])
+
         if(diretorioDuplicado):
             enderecoDiretorio = mascara(chave, pl)
         else:
             enderecoDiretorio = mascara(chave, pl+1)
         if(diretorio[enderecoDiretorio]==diretorio[bucketAntigo]):
-            inserir(dados[0], chave,bucketAntigo, diretorio, prefixo)
+            inserir(dados,coluna,bucketAntigo, diretorio, prefixo, tamMaximo)
         else:
-            inserir(dados[0], chave, bucketNovo, diretorio, prefixo)
+            inserir(dados, coluna, bucketNovo, diretorio, prefixo, tamMaximo)
 
 
 def removerBucket(indice_bucket,chave):

@@ -13,6 +13,10 @@ class Pagina():
         self._qtd_tuplas_ocup = 0
         #self._nome_página = nome_arquivo
 
+    @property
+    def tuplas(self):
+        return self._tuplas
+
     def adicionar_tupla(self,tupla):
         if (self._qtd_tuplas_ocup <12): 
             self._tuplas.append(tupla.cols)           
