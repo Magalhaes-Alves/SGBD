@@ -37,7 +37,8 @@ def inserir(tupla,coluna,bucket,diretorio, prefixo, tamMaximo):
     #Pega a profundidade global atual do diretorio
     profundidadeGlobal = log2(len(diretorio))
     chave_busca = int(tupla[coluna])
-    
+    if (chave_busca==129):
+        print("Bug")
     #Carrega o bucket em que será feita a inserção para a memória principal
     with open(prefixo + diretorio[bucket] + '.txt','r') as arq:
         pl_reg =arq.readline() 
@@ -48,6 +49,8 @@ def inserir(tupla,coluna,bucket,diretorio, prefixo, tamMaximo):
     #Verifica se o número de registros daquele bucket é menor que 32,pois,
     # caso seja 32(capacidade de uma página),será necessário duplicar o diretório ou dividir o bucket 
     if(int(pl_reg[1][:-1])<tamMaximo):
+        if (chave_busca==129):
+            print("Bug1")
         #Passo para somar um a quantidade de registros no conteudo da linha
         quantidade_registros = pl_reg[1][:-1]
         quantidade_registros = int(quantidade_registros) +1
@@ -62,7 +65,8 @@ def inserir(tupla,coluna,bucket,diretorio, prefixo, tamMaximo):
     #Caso a profundidade local daquele bucket cheio seja maior ou igual a global, é necessário duplicar o
     #diretório
     elif int(pl_reg[0])>=profundidadeGlobal:
-        #
+        if (chave_busca==129):
+            print("Bug2")
         duplicarDiretorio(diretorio,bucket, prefixo, tamMaximo)
         
         profundidadeGlobal+=1
@@ -73,6 +77,8 @@ def inserir(tupla,coluna,bucket,diretorio, prefixo, tamMaximo):
         inserir(tupla,coluna,mascara(int(chave_busca),len(diretorio[bucket])),diretorio, prefixo, tamMaximo)
     #Caso não seja, basta fazer a divisão do bucket
     else:
+        if (chave_busca==129):
+            print("Bug3")
         """
         Neste teste quero ver o seguinte:
         Considere o diretorio ['00', '001', '10', '11', '00', '101', '10', '11']
@@ -82,7 +88,9 @@ def inserir(tupla,coluna,bucket,diretorio, prefixo, tamMaximo):
             divisaoBucket(bucket,bucket-int(len(diretorio)//2),diretorio, prefixo,tamMaximo, coluna)
         else:
             divisaoBucket(bucket,bucket+int(len(diretorio)//2),diretorio, prefixo, tamMaximo, coluna)
-        
+                
+        inserir(tupla,coluna,mascara(int(chave_busca),len(diretorio[bucket])),diretorio, prefixo, tamMaximo)
+
     return int(profundidadeGlobal)
 
 
