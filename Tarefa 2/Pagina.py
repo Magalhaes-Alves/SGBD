@@ -26,8 +26,3 @@ class Pagina():
         else:
             return False
 
-"""     def gravar(self):
-        with open(self._nome_página+".txt","w") as saida:
-            saida.write(str(self._qtd_tuplas_ocup) + "\n")
-            for i in self._tuplas:
-                saida.write(i+"\n") """

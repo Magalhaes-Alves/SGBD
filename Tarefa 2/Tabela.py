@@ -54,7 +54,7 @@ class Tabela():
 
     def carregarDados(self):
         prefixo = self._nome_arq.split(".")[0]
-        #print(prefixo)
+
         with open(self._nome_arq,"r") as arq:
             linhas = arq.readlines()
         
@@ -66,7 +66,7 @@ class Tabela():
         
 
         page = Pagina()
-        for registro in registros:
+        for registro in registros[:-1]:
             tupla = Tupla()
 
             tupla.adicionar_atributo(registro[:-1])
@@ -81,21 +81,34 @@ class Tabela():
 
                 page.adicionar_tupla(tupla)
 
+        tupla = Tupla()
+
+        tupla.adicionar_atributo(registro[:-1])
+
+        if(not page.adicionar_tupla(tupla)):
+            nome_arquivo =prefixo+"_"+"pagina"+"_"+str(self._qtd_paginas)+".txt"
+            self.adicionaPagina(nome_arquivo)
+        
+            self.serializador(page,nome_arquivo)
+        
+            page = Pagina()
+
+            page.adicionar_tupla(tupla)
+
         if(len(page.tuplas)>0):
             nome_arquivo =prefixo+"_"+"pagina"+"_"+str(self._qtd_paginas)+".txt"
             self.adicionaPagina(nome_arquivo)
             self.serializador(page,nome_arquivo)
         
-        self.serializador(self, prefixo+"_tabela")
+        self.serializador(self, prefixo+"_tabela.txt")
 
-    
-    def PrintarPaginas(self):
-        for page in self._pages[0]._tuplas:
-            print(page)
-            
+    #Para gravar e ler as paginas/tabelas foi usado o serializador pickle do python.
+    #Basta passar o objeto e o nome(para o trabalho estamos seguindo o padrao prefixo_tipo_num_.txt)
+    # Prefixo é o nome da tabela(vinho,uva,pais), o tipo é o que está gravado no arquivo()        
     def serializador(self,objeto, nome):
         with open(nome,"wb") as arq:
             pickle.dump(objeto,arq)
+
 
     def deserializador(self, nome):
         with open(nome,"rb") as arq:

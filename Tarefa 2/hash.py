@@ -33,7 +33,7 @@ fácil apenas pegando a posição considerando o valor em base 10 nos n últimos
 
 """
 Aviso: O [:-1] usado muitas vezes ao longo deste código serve para retirar a quebra de linha no final da string """
-def hash(tabela, coluna, prefixo):
+def hash(tabela, coluna, prefixo, tamMaxBucket):
     #Abre o arquivo in.txt em modo de leitura e o out.txt(Arquivo que será escrito conforme a especificação) em modo de escrita
     #Carrega todas as linhas do arquivo in.txt para saber quais comandos serão executados
     
@@ -63,34 +63,20 @@ def hash(tabela, coluna, prefixo):
                 arq.write("2,0\n")
 
     paginas = tabela.pages
-    
-    """  if tabela.e == 1:
-        tamMaxBucket = 200
-    elif tabela._qtd_paginas < 40:
-        tamMaxBucket = 32
-    else:
-        tamMaxBucket = 12"""
-    tamMaxBucket = 32
-    i = 0
+    IO = 0
     for pagina in paginas:
         tuplas = (tabela.deserializador(pagina)).tuplas
-        """ i+=1
-        if(i==7):
-            print(tuplas)"""
+        IO += 1
         for tupla in tuplas:
-            i += 1
+            
             profundidadeGlobal = funcoes.inserir(tupla, coluna, funcoes.mascara(int(tupla[coluna]), profundidadeGlobal),diretorioEntradas,prefixo, tamMaxBucket)
-    
-        """elif operacao[0][:3]== "BUS" and operacao[0][3] =='=':
-            Fazer busca
-            chave_busca = int(operacao[1][:-1])
-            A variável tuplas armazena todas as tuplas buscadas
-            tuplas = funcoes.buscarBucket(chave_busca, funcoes.mascara(chave_busca,profundidadeGlobal), diretorioEntradas)
+            IO+=1
 
-    """
-    print(f"Total de tuplas inseridas:{i}")
+    #Salva o diretorio da indexação por hash
     with open(prefixo + 'diretorio.txt','w') as diretorioSaida:
         diretorioSaida.write(f"{profundidadeGlobal}\n")
 
         for enderecoDiretorioSaida in diretorioEntradas:
             diretorioSaida.write(f"{enderecoDiretorioSaida}\n")
+            
+    return IO
