@@ -62,7 +62,7 @@ def inserir(tupla,coluna,bucket,diretorio, prefixo, tamMaximo):
     #Caso a profundidade local daquele bucket cheio seja maior ou igual a global, é necessário duplicar o
     #diretório
     elif int(pl_reg[0])>=profundidadeGlobal:
-        #
+
         duplicarDiretorio(diretorio,bucket, prefixo, tamMaximo)
         
         profundidadeGlobal+=1
@@ -83,6 +83,7 @@ def inserir(tupla,coluna,bucket,diretorio, prefixo, tamMaximo):
         else:
             divisaoBucket(bucket,bucket+int(len(diretorio)//2),diretorio, prefixo, tamMaximo, coluna)
         inserir(tupla,coluna,mascara(int(chave_busca),len(diretorio[bucket])),diretorio, prefixo, tamMaximo)
+    
     return int(profundidadeGlobal)
 
 
@@ -150,20 +151,51 @@ def divisaoBucket(bucketAntigo,bucketNovo,diretorio, prefixo,tamMaximo, coluna ,
         arq1.write(f"{int(pl) + 1},0\n")
         arq1.close()
 
+        valorMudanca = diretorio[bucketAntigo]
+        contadorTroca = diretorio.count(valorMudanca)
+
         if(int(len(diretorio)/2)<=bucketAntigo):
             shutil.move(prefixo + diretorio[bucketAntigo]+'.txt', prefixo + '1'+diretorio[bucketAntigo]+'.txt')
-            diretorio[bucketAntigo] = '1' + diretorio[bucketAntigo]
-
+            """diretorio[bucketAntigo] = '1' + diretorio[bucketAntigo]
+            
             diretorio[bucketNovo] = '0' + diretorio[bucketNovo]
+            Aqui está comentado o código antigo.
+            Qual era o problema?
+            Basicamente quando um bucket precisava ser dividido e sua profundidade local
+            era pl<=pg-2 , havia o problema de não atualizar todas as suas referências no diretório.
+            Por exemplo:
+            [00,0001,10,11,00,0101,10,11,00,1001,10,11,00,1101,10,11]
+            Digamos que 0101 causasse outra duplicação de diretório:
+            [00,0001,10,11,00,00101,10,11,00,1001,10,11,00,1101,10,11,00,0001,10,11,00,10101,10,11,00,1001,10,00,11,1101,10,11]
+            Após a duplicação, caso o 00 precise ser divido, o que o código fazia anteriormente era apenas orrigir duas
+            referências de 00(uma à esquerda e outra à direita), mas há 8, então claramente daria problema no hash.
+            """
+
+            for i in range(contadorTroca):
+                posicaoMudanca = diretorio.index(valorMudanca)
+                if(len(diretorio)/2<posicaoMudanca):
+                    diretorio[posicaoMudanca] = '1' + diretorio[posicaoMudanca]
+                else:
+                    diretorio[posicaoMudanca] = '0' + diretorio[posicaoMudanca]
             with open(prefixo + diretorio[bucketNovo]+'.txt','w') as arq:
                 arq.write(f"{pl+1},0\n")
         else:
             shutil.move(prefixo + diretorio[bucketAntigo]+'.txt', prefixo + '0'+diretorio[bucketAntigo]+'.txt')
-            diretorio[bucketNovo] = '1' + diretorio[bucketNovo]
+            """diretorio[bucketNovo] = '1' + diretorio[bucketNovo]
 
             diretorio[bucketAntigo] = '0' + diretorio[bucketAntigo]
+            Aqui está comentado o código antigo.
+            A explicação do problema que estava dando está acima
+            """
+            for i in range(contadorTroca):
+                posicaoMudanca = diretorio.index(valorMudanca)
+                if(len(diretorio)/2<posicaoMudanca):
+                    diretorio[posicaoMudanca] = '1' + diretorio[posicaoMudanca]
+                else:
+                    diretorio[posicaoMudanca] = '0' + diretorio[posicaoMudanca]
             with open(prefixo + diretorio[bucketNovo]+'.txt','w') as arq:
                 arq.write(f"{pl+1},0\n")
+    
     #Insere entrada a entrada no bucket correto
     for registro in registros:
        

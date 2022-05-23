@@ -239,7 +239,10 @@ class Operador():
         #Caso seja pais_id, deve passar que o tam máximo do bucket é 200 para não cair no problema
         #discutido em sala
         if self.colTab1 == 'pais_producao_id' or self.colTab1 == 'pais_id' or self.colTab1 == 'pais_origem_id':
-            tamMaximo = 200
+            tamMaximo = 2000
+            #Única coisa trocada aqui é o tamMaximo. Anteriormente, o valor era 200, mas ainda falhava para quando
+            # a coluna é pais_id,tanto que deu problema na sexta mesmo com as 500 tuplas.Então, coloquei esse valor exagerado
+            #pq dá certo e para assegurar de que não vai dar problema
         else:
             tamMaximo = 32
         #Realiza a indexação hash da tabela 1
@@ -247,7 +250,7 @@ class Operador():
 
         coluna2 = self._tabela2.esquema.nome_para_indice[self.colTab2]
         if self.colTab2 == 'pais_producao_id' or self.colTab2 == 'pais_id' or self.colTab2 == 'pais_origem_id':
-            tamMaximo = 200
+            tamMaximo = 2000
         else:
             tamMaximo = 32
         self.adicionarNIOs(hash(self._tabela2, coluna2 , self.nome2 + '_', tamMaximo))
@@ -311,12 +314,12 @@ class Operador():
         
         for arquivo in vinho.pages:
             remove(arquivo)
-        remove('vinho_tabela.txt')
+        remove(vinho.nome_arq.split('.')[0]+'_tabela.txt')
 
         for arquivo in uva.pages:
             remove(arquivo)
-        remove('uva_tabela.txt')
+        remove(uva.nome_arq.split('.')[0]+'_tabela.txt')
 
         for arquivo in pais.pages:
             remove(arquivo)
-        remove('pais_tabela.txt')
+        remove(pais.nome_arq.split('.')[0]+'_tabela.txt')
