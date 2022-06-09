@@ -1,7 +1,7 @@
 class Transacao():
     def __init__(self, Id, status, Ts):
         self._Id = Id
-        self.status = status
+        self._status = status
         self._Ts = Ts
 
     @property
@@ -14,9 +14,9 @@ class Transacao():
 
     @property
     def status(self):
-        self.status
+        return self._status
     
     @status.setter
     def status(self, status):
-        self.status = status
+        self._status = status
 
