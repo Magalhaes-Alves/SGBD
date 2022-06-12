@@ -1,15 +1,17 @@
 class Lock_Request():
-    def __init__(self,modo, TR, prox, item):
+    def __init__(self, modo, TR_Id, prox, item):
         self._modo = modo
-        self._TR = TR
-        #Inteiro que referencia a transação, ou seja, a chave da transação em Tr_list
+        self._TR_Id = TR_Id
+        #String que referencia o id da transação.Como há uma função para buscar TR pelo ID,
+        #pode-se encontrar a chave da transação em Tr_list a partir do atributo TR_Id
         self._prox = prox
         #Ponteiro para o proximo LockRequest para verificar se há ciclo
         self._item = item
 
+
     @property
-    def TR(self):
-        return self._TR
+    def TR_Id(self):
+        return self._TR_Id
 
     @property
     def modo(self):

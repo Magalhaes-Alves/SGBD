@@ -10,6 +10,7 @@ class Tr_Manager():
         pode ser entendido como o Tr.Id descrito no enunciado
         """
         self._TS_Atual = 0
+        self.grafo = []
 
     
     @property
@@ -30,8 +31,8 @@ class Tr_Manager():
     def aumentar_TR(self):
         self._TR_Atual +=1
 
-    def get_TR(self,TR_Id):
-        return self.Tr_List[str(TR_Id)]
+    def get_TR(self,TR):
+        return self.Tr_List[TR]
     
     def inserir(self,TR_Novo):
         (self.Tr_List)[self.TR_Atual] = TR_Novo
