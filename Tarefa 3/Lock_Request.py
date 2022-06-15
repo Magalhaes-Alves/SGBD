@@ -5,7 +5,7 @@ class Lock_Request():
         #String que referencia o id da transação.Como há uma função para buscar TR pelo ID,
         #pode-se encontrar a chave da transação em Tr_list a partir do atributo TR_Id
         self._prox = prox
-        #Ponteiro para o proximo LockRequest para verificar se há ciclo
+        #Ponteiro para o proximo LockRequest da lista Lock_Table ou WaitQ
         self._item = item
 
 

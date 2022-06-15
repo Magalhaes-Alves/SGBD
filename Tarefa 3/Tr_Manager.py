@@ -10,7 +10,7 @@ class Tr_Manager():
         pode ser entendido como o Tr.Id descrito no enunciado
         """
         self._TS_Atual = 0
-        self.grafo = []
+        self._waitForDataList= {}
 
     
     @property
@@ -25,6 +25,14 @@ class Tr_Manager():
     def Tr_List(self):
         return self._Tr_List
 
+    @property
+    def waitForDataList(self):
+        return self._waitForDataList
+    
+    @waitForDataList.setter
+    def waitForDataList(self, novo):
+        self._waitForDataList = novo
+
     def aumentar_TS(self):
         self._TS_Atual +=1
 
@@ -36,6 +44,8 @@ class Tr_Manager():
     
     def inserir(self,TR_Novo):
         (self.Tr_List)[self.TR_Atual] = TR_Novo
+        self.waitForDataList[self.TR_Atual] = [False]
+        #O primeiro elemento é um valor booleano que indica se a Transação possui operações em espera ou não
         self.aumentar_TR()
     
     def remover(self,TR):
