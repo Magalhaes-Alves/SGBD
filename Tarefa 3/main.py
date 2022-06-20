@@ -14,12 +14,11 @@ def Carregar_Ops(op_lida, fator,cont):
     return op_aux
 
 
-arq = open('in.txt', 'r')
+arq = open('in2.txt', 'r')
 ops_lidas = arq.readlines()
 arq.close()
 
 OPS = []
-lm = Lock_Manager()
 cont = 0
 
 """
@@ -59,7 +58,8 @@ else:
 
     OPS.append(op_aux)
 
-lm.scheduler(OPS)
+lm = Lock_Manager(OPS)
+lm.scheduler()
 
 """for algo in OPS:
     print(f"Id:{algo.id},tipo:{algo.tipo},item:{algo.item}")"""

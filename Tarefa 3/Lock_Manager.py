@@ -4,7 +4,7 @@ from Lock_Request import Lock_Request
 
 
 class Lock_Manager():
-    def __init__(self):
+    def __init__(self, OPS):
         self._Lock_Table = {}
         """
         Neste dicionário, a chave é o item e o valor relativo a uma chave é a lista de Lock_Requests associados àquele item.
@@ -17,8 +17,18 @@ class Lock_Manager():
         self._WaitQ = {}
         self._CommitsEmEspera = []
         self._serializavel = True
-        self.tr_manager = Tr_Manager() 
-    
+        self.tr_manager = Tr_Manager()
+        self._OPS = OPS
+        self._OPS_Postergadas = {}
+
+    @property
+    def OPS(self):
+        return self._OPS
+
+    @property
+    def OPS_Postergadas(self):
+        return self._OPS_Postergadas
+
     @property
     def CommitsEmEspera(self):
         return self._CommitsEmEspera
@@ -72,7 +82,7 @@ class Lock_Manager():
         
 
     def Printar_Lock_Table(self):
-        #print("AQUI!\n\n")
+        print("--LockTable--")
         chaves = self.Lock_Table.keys()
         for chave in chaves:
             aux = self.Lock_Table[chave]
@@ -98,14 +108,8 @@ class Lock_Manager():
 
 
     def printar_WaitQ(self):
+        print("--WAITQ--")
         chaves = self.WaitQ.keys()
-        print("""
-
-
-        WAIT Q ,THIAGO
-
-
-        """)
         for chave in chaves:
             aux = self.WaitQ[chave]
             while(aux != None):
@@ -113,9 +117,116 @@ class Lock_Manager():
                 aux = aux.prox
 
 
+    def postergarTR(self,Lock_Request_Aux):
+        TR_ID = Lock_Request_Aux.TR_Id
+        modo = 'r' if Lock_Request_Aux.modo == 'S' else 'w'
+        item = Lock_Request_Aux.item
+        TR_aux = self.tr_manager.buscar_TR_por_Id(TR_ID)
+        self.OPS_Postergadas[TR_ID] = []
+
+        i = 0
+        while(self.OPS[i].tipo[0] != modo or self.OPS[i].tipo[1] != TR_ID or self.OPS[i].item !=item):
+            #Iterar sobre a lista de operações até a operação atual
+            if((self.OPS[i].tipo[0] ==  'r' or self.OPS[i].tipo[0] ==  'w') and self.OPS[i].tipo[1] == TR_ID):
+                print(f"Tipo:{self.OPS[i].tipo[0]}, item:{self.OPS[i].item}, TR_ID:{self.OPS[i].tipo[1]}")
+                
+                self.OPS_Postergadas[TR_ID].append((self.OPS[i]))
+                #Se a operação de uma dada iteração for relativa à mesma transação da que está sendo postergada,
+                # a operação é retirada da lista em que estiver(Lock_Table ou WaitQ) e colocada na lista de 
+                # operações Postergadas
+                chaves = self.Lock_Table.keys()
+                verificaWait = True 
+                #Procurar na lockTable pelo item.Se não estiver na LockTale procurar na lista de espera
+                if item in chaves:
+                    Corrente = self.Lock_Table[self.OPS[i].item]
+            
+                    Anterior = None
+                    while (Corrente != None and verificaWait==True):
+                        Seguinte = Corrente.prox
+                        if TR_ID == Corrente.TR_Id:                
+                            if Anterior == None:
+                                self.Lock_Table[self.OPS[i].item] = Corrente.prox
+                                Anterior = None
+                            elif Seguinte == None:
+                                Anterior.prox = None
+                                Anterior = Corrente
+                            else:
+                                Anterior.prox = Corrente.prox
+                                Anterior = Corrente
+                            verificaWait = False
+                        Corrente = Corrente.prox
+
+                    if(self.Lock_Table[self.OPS[i].item]==None):
+                        self.Lock_Table.pop(self.OPS[i].item)
+                
+                #Procurar na WaitQ
+                if verificaWait==True:
+                    Corrente = self.WaitQ[self.OPS[i].item]
+
+                    Anterior = None
+                    while (Corrente != None):
+                        Seguinte = Corrente.prox
+                        if TR_ID.Id == Corrente.TR_Id:                
+                            if Anterior == None:
+                                self.WaitQ[self.OPS[i].item] = Corrente.prox
+                                Anterior = None
+                            elif Seguinte == None:
+                                Anterior.prox = None
+                                Anterior = Corrente
+                            else:
+                                Anterior.prox = Corrente.prox
+                                Anterior = Corrente
+                            break
+                        Corrente = Corrente.prox
+
+                    if(self.WaitQ[self.OPS[i].item]==None):
+                        self.WaitQ.pop(self.OPS[i].item)
+            
+            i+=1
+        
+        self.OPS_Postergadas[TR_ID].append(self.OPS[i])
+        self.tr_manager.waitForDataList[TR_aux] = [-1]
+
+
+    def rollBack(self, transacao,Lock_Request_Postergado):
+        #Deve-se colocar as operações relativas a trans_Adicionada na fila de transações postergadas
+        self.postergarTR(Lock_Request_Postergado)
+        itensLiberados = []
+        for operacao in self.OPS_Postergadas[transacao.Id]:
+            itensLiberados.append(operacao.item)
+        
+        #Deve-se tentar executar operações de transações ativas em espera.Caso alguma transação seja commitada
+        #neste proccesso, deve-se tentar executar novamente operações de transações ativas em espera.
+        
+        apagar = []
+        self.liberar_itens_WaitQ(itensLiberados,apagar)
+        for apagaratual in apagar:
+            self.WaitQ.pop(apagaratual)
+        self.ajustar_WaitforData()
+
+        self.printar_WaitQ()
+        self.Printar_Lock_Table()
+        self.commitar()
+        
+        #Finalmente, deve-se tentar reiniciar as transações de acordo com sua ordem na fila de transações postergadas
+        self.Escrever_Lock_Table()
+        TR_Topo = list(self.OPS_Postergadas.keys())[0]
+
+        TR_aux = self.tr_manager.buscar_TR_por_Id(TR_Topo)
+        for operacao in self.OPS_Postergadas[TR_Topo]:
+            if operacao.tipo[0] == 'r':
+                self.LS(TR_aux,operacao.item)
+            else:
+                self.LX(TR_aux,operacao.item)
+        
+        if TR_Topo in self.CommitsEmEspera:
+            self.commitar()
+        
+        self.OPS_Postergadas.pop(TR_Topo)
+        self.Carregar_Lock_Table()
+
     def waitDie(self,TR, item, Novo_Lock_Request):
-        print("-"*20)
-        print("Wait-Die:")
+
         trans_Adicionada = self.tr_manager.get_TR(TR)
         #Transação que ocasionou a execução do wait-die
         trans_Enfileirada = self.tr_manager.buscar_TR_por_Id(self.Lock_Table[item].TR_Id)
@@ -123,7 +234,6 @@ class Lock_Manager():
         trans_Enfileirada = self.tr_manager.get_TR(trans_Enfileirada)
 
         count = 0
-        countRoll = 0
 
         aux_Lock = self.Lock_Table[item]
         while(aux_Lock !=None):
@@ -131,13 +241,15 @@ class Lock_Manager():
             #Pega o TR e na linha seguinte pega a transação em si
             aux_Trans = self.tr_manager.get_TR(aux_Trans)
 
-            if trans_Adicionada.Ts < aux_Trans.Ts:
-                countRoll = 1   
+            if trans_Adicionada.Ts > aux_Trans.Ts and aux_Lock.modo == 'X':
+                #A transação de trans_Adicionada deve ser postergada devido a uma situação de ROLLBACK
+                print(f"RollBack TS({trans_Adicionada.Id})<TS({aux_Trans.Id})")
+                self.rollBack(trans_Adicionada, Novo_Lock_Request)
+                return
+
             count += 1
             aux_Lock = aux_Lock.prox
             
-        if countRoll>0:
-            print("ROLLBACK")
 
         if trans_Adicionada.Ts == trans_Enfileirada.Ts and count == 1:
             #Isto significa que a operação que ocasionou a execução do waitDie é a mesma
@@ -147,7 +259,7 @@ class Lock_Manager():
             self.Lock_Table[item].prox = Novo_Lock_Request
         else:
             #Coloca na Lista de Espera
-            self.tr_manager.waitForDataList[TR][0] = True
+            self.tr_manager.waitForDataList[TR][0] = 0
             self.tr_manager.waitForDataList[TR].append(item)
             #Muda este valor para informar que há operações em espera
             if item in self.WaitQ.keys():
@@ -161,8 +273,11 @@ class Lock_Manager():
                 
                 self.WaitQ[item] = Novo_Lock_Request
         
-        print("-"*20)
         
+        
+
+    def woundWait(self,TR, item, Novo_Lock_Request):
+        pass
 
 
     def LS(self, TR, item):
@@ -175,7 +290,7 @@ class Lock_Manager():
         Novo_Lock_Request = Lock_Request("S", trans.Id,None, item)
         
         #Será que a transação em questão está com uma operação anterior em espera?
-        if self.tr_manager.waitForDataList[TR][0] == True:
+        if self.tr_manager.waitForDataList[TR][0] == 0:
             self.tr_manager.waitForDataList[TR].append(item)
 
         if (not item in chaves):
@@ -203,7 +318,7 @@ class Lock_Manager():
         Novo_Lock_Request = Lock_Request("X", trans.Id,None, item)
 
         #Será que a transação em questão está com uma operação anterior em espera?
-        if self.tr_manager.waitForDataList[TR][0] == True:
+        if self.tr_manager.waitForDataList[TR][0] == 0:
             self.tr_manager.waitForDataList[TR].append(item)
 
         if (not item in chaves):
@@ -228,9 +343,7 @@ class Lock_Manager():
         Anterior = None
         while (Corrente != None):
             Seguinte = Corrente.prox
-            if trans.Id == Corrente.TR_Id:
-                print("TESTANDO ESSA BUCETA")
-                self.Printar_Lock_Table()
+            if trans.Id == Corrente.TR_Id:                
                 if Anterior == None:
                     self.Lock_Table[item] = Corrente.prox
                     Anterior = None
@@ -274,7 +387,7 @@ class Lock_Manager():
                             controle +=1
                         WaitQ_aux = WaitQ_aux.prox
             if(controle==0):
-                self.tr_manager.waitForDataList[chave] = [False]
+                self.tr_manager.waitForDataList[chave] = [1]
                 
                 
 
@@ -326,34 +439,16 @@ class Lock_Manager():
                 if(self.WaitQ[item_liberado]==None):
                     apagar.append(item_liberado)
 
-    def apagarTr(self, TR_Id):
-        """Apaga as Transações de Tr da LockTable e verifica se operações de outras transações podem prosseguir"""
-        self.Carregar_Lock_Table()
 
-        TR = self.tr_manager.buscar_TR_por_Id(TR_Id)
-        chaves = self.Lock_Table.keys()
-        itens_Liberados = []
-        apagar = []
-        for chave in chaves:
-            if(self.U(TR, chave,apagar)):
-                itens_Liberados.append(chave)
-        for apagaratual in apagar:
-            self.Lock_Table.pop(apagaratual)
-        apagar = []
-        
-        self.liberar_itens_WaitQ(itens_Liberados,apagar)
-        for apagaratual in apagar:
-            self.WaitQ.pop(apagaratual)
-        apagar = [] 
-        self.ajustar_WaitforData()
-        
+
+    def commitar(self):
         commitado = len(self.CommitsEmEspera)
         #Variável para entrar no loop a seguir e saber se alguma Transação foi commitada
 
         while(commitado>0):
             for commitAtual in self.CommitsEmEspera:
                 TR_Aux = self.tr_manager.buscar_TR_por_Id(commitAtual)
-                if self.tr_manager.waitForDataList[TR_Aux][0] == False:
+                if self.tr_manager.waitForDataList[TR_Aux][0] == 1:
                     
                     chaves = self.Lock_Table.keys()
                     itens_Liberados = []
@@ -377,6 +472,31 @@ class Lock_Manager():
                     commitado += len(self.CommitsEmEspera)
                     #Isto é feito para que seja analisado se dá para commitar mais alguma transação depois da liberação desta
                 commitado -=1
+
+
+    def apagarTr(self, TR_Id):
+        """Apaga as Transações de Tr da LockTable e verifica se operações de outras transações podem prosseguir"""
+        self.Carregar_Lock_Table()
+
+        TR = self.tr_manager.buscar_TR_por_Id(TR_Id)
+        chaves = self.Lock_Table.keys()
+        itens_Liberados = []
+        apagar = []
+        for chave in chaves:
+            if(self.U(TR, chave,apagar)):
+                itens_Liberados.append(chave)
+        for apagaratual in apagar:
+            self.Lock_Table.pop(apagaratual)
+        apagar = []
+        
+        self.liberar_itens_WaitQ(itens_Liberados,apagar)
+        for apagaratual in apagar:
+            self.WaitQ.pop(apagaratual)
+        apagar = [] 
+        self.ajustar_WaitforData()
+        
+        #Commita o que foi apagado
+        self.commitar()
         
         
         print("WaitQ")
@@ -428,21 +548,17 @@ class Lock_Manager():
             self.apagarTr(OP.item)
         
 
-    def scheduler(self, OPS):
+    def scheduler(self):
         print("Iniciando...\n")
         
         """
         Percorre a lista de OPS e executa a função controleOP para cada uma delas para que o controle de concorrência
         possa ser feito
         """
-        for OP in OPS:
+        for OP in self.OPS:
             self.controleOP(OP)
 
             if(not self.serializavel):
                 print("Esta história não é serializável")
                 break
-
-        print(f"""
-        {type(self.CommitsEmEspera)}
-        """)
 

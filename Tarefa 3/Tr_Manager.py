@@ -11,8 +11,22 @@ class Tr_Manager():
         """
         self._TS_Atual = 0
         self._waitForDataList= {}
+        """
+        Guarda os itens em que há operações em espera relativas a determinada transação.
+        Isto é guardado é um dicionário de tal forma que TR é a chave e o valor relativo a essa chave é uma
+        lista em que o primeiro elemento é um inteiro que sinaliza o seguinte de acordo com seu valor:
+        -1 : Transação Postergada
+        0 : Transação ativa com operações em espera
+        1: Transação ativa sem operações em espera
 
+        O resto dos elementos da lista são os itens em que há operações daquela transação em espera
+        """
+        self._grafo = []
     
+    @property
+    def grafo(self):
+        return self._grafo
+
     @property
     def TS_Atual(self):
         return self._TS_Atual
@@ -44,8 +58,8 @@ class Tr_Manager():
     
     def inserir(self,TR_Novo):
         (self.Tr_List)[self.TR_Atual] = TR_Novo
-        self.waitForDataList[self.TR_Atual] = [False]
-        #O primeiro elemento é um valor booleano que indica se a Transação possui operações em espera ou não
+        self.waitForDataList[self.TR_Atual] = [1]
+        #O primeiro elemento é o 1 para indicar que é uma transação ativa sem operações em espera
         self.aumentar_TR()
     
     def remover(self,TR):
