@@ -86,3 +86,35 @@ class Tr_Manager():
             TR = self.Tr_List[chave]
             print(f"TR:{chave}")
             print(f"Id:{TR.Id}, TS:{TR.Ts}, Status:{TR.status}\n")
+
+    
+    def AdicionarArestaGrafo(self,Tran1, Tran2):
+        self.grafo.append([Tran1,Tran2])
+
+
+    def eliminarArestaGrafo(self,Tran2):
+        apagar = []
+        for aresta in self.grafo:
+            if(aresta[1]==Tran2):
+                apagar.append(aresta)
+        for itemparaapagar in apagar:
+            self.grafo.remove(itemparaapagar)
+    
+
+    def printarGrafo(self, listaEspera = None):
+        print("Arestas do Grafo:{",end = '')
+        for aresta in self.grafo:
+            print(f" T{aresta[0]}->T{aresta[1]} ",end = '')
+        print("}")
+
+        if type(listaEspera) == str:
+            print(f"Lista de espera do item {listaEspera}:"+"{}\n")
+        elif listaEspera != None:
+            print(f"Lista de espera do item {listaEspera.item}:" + "{", end='')
+            while(listaEspera.prox!=None):
+                print(f" {listaEspera.modo}{listaEspera.TR_Id},", end = '')
+                listaEspera = listaEspera.prox
+            print(f" {listaEspera.modo}{listaEspera.TR_Id}"+ "}\n")
+        else:
+            print("\n")
+
