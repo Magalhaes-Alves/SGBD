@@ -119,18 +119,17 @@ class Lock_Manager():
         item = Lock_Request_Aux.item
 
         #Cria as listas de operações postergadas para cada um
-        print("PORRA")
+        
         print(transacoes)
         for transacao in transacoes:
             self.OPS_Postergadas[transacao] = []
-        """if TR_ID not in transacoes:
-            self.OPS_Postergadas[TR_ID] = []"""
+  
         i = 0
         
         while(self.OPS[i].tipo[0] != modo or self.OPS[i].tipo[1] != TR_ID or self.OPS[i].item !=item):
             #Iterar sobre a lista de operações até a operação atual
             if((self.OPS[i].tipo[0] ==  'r' or self.OPS[i].tipo[0] ==  'w') and self.OPS[i].tipo[1] in transacoes):
-                #print(f"Tipo:{self.OPS[i].tipo[0]}, item:{self.OPS[i].item}, TR_ID:{self.OPS[i].tipo[1]}")
+                
                 self.OPS_Postergadas[self.OPS[i].tipo[1]].append((self.OPS[i]))
                 #Se a operação de uma dada iteração for relativa à mesma transação da que está sendo postergada,
                 # a operação é retirada da lista em que estiver(Lock_Table ou WaitQ) e colocada na lista de 
@@ -183,7 +182,7 @@ class Lock_Manager():
             
             i+=1
         
-        #self.OPS_Postergadas[self.OPS[i].tipo[1]].append(self.OPS[i])
+        
         for transacao in transacoes:
             self.tr_manager.waitForDataList[transacao] = [-1]
         if TR_ID not in transacoes:
@@ -202,10 +201,9 @@ class Lock_Manager():
                 aux_Lock.prox = Lock_Request_Postergado
             else:
                 self.Lock_Table[Lock_Request_Postergado.item] = Lock_Request_Postergado
-        print("TESTE PEDO:")
+       
 
-        self.Printar_Lock_Table()
-        self.printar_WaitQ()
+        
         itensLiberados = []
         for transacao in transacoes:
             for operacao in self.OPS_Postergadas[transacao]:
@@ -217,8 +215,11 @@ class Lock_Manager():
         self.liberar_itens_WaitQ(itensLiberados,transacoes)
         
         self.commitar(-1,True)
-        
         #Finalmente, deve-se tentar reiniciar as transações de acordo com sua ordem na fila de transações postergadas
+        self.Reiniciando()
+        
+       
+    def Reiniciando(self):
         print("Reiniciando Transações Postergadas...")
         tentativas = len(self.OPS_Postergadas)
         while(tentativas>0):
@@ -235,12 +236,14 @@ class Lock_Manager():
                     print(f'w{TR_Topo}-({operacao.item})', end = '')
                     self.LX(TR_aux,operacao.item)
             
+            aux_Commitar = False
             if TR_Topo in self.CommitsEmEspera:
+                aux_Commitar = True
+            if aux_Commitar == True:
+                self.OPS_Postergadas.pop(TR_Topo)
                 self.commitar(TR_Topo)
             
-            self.OPS_Postergadas.pop(TR_Topo)
             self.Carregar_Lock_Table()
-
 
     def waitDie(self,TR, item, Novo_Lock_Request):
 
@@ -332,17 +335,13 @@ class Lock_Manager():
             #Pega o TR e na linha seguinte pega a transação em si
             aux_Trans = self.tr_manager.get_TR(aux_Trans)
             
-            """print(f"TransAdicionada:{trans_Adicionada.Ts}")
-            print(Novo_Lock_Request.modo )
-            print(f"Aux:{aux_Trans.Ts}")"""
             if trans_Adicionada.Ts < aux_Trans.Ts and Novo_Lock_Request.modo =='X':
                 #A transação de trans_Adicionada deve ser postergada devido a uma situação de ROLLBACK
                 count+=1
                 transRollBack.append(aux_Trans.Id)
                 
             aux_Lock = aux_Lock.prox
-        print("TransRollBACK:")
-        print(transRollBack)
+       
         self.Printar_Lock_Table()
         if count>0:
             transRollBack = list(set(transRollBack))
@@ -384,6 +383,15 @@ class Lock_Manager():
                 aux_Lock = aux_Lock.prox
 
 
+    def adicionarOPSPostergadas(self,TR_Id, modo, item):
+        #Vai até a Operation na lista de Operations e adiciona o endereço dela ao final da respectiva lista de
+        #Operações postergadas daquela transação
+        i = 0
+        while(self.OPS[i].tipo[0] != modo or self.OPS[i].tipo[1] != TR_Id or self.OPS[i].item !=item):
+            i+=1
+        self.OPS_Postergadas[TR_Id].append(self.OPS[i])
+
+
     def LS(self, TR, item):
         #insere um bloqueio no modo compartilhado na Lock_Table se puder,
 		#senao insere um Lock_Request da transacao Tr na Wait_Q de D
@@ -399,6 +407,8 @@ class Lock_Manager():
                 self.waitDie(TR, item, Novo_Lock_Request)
             else:
                 self.woundWait(TR, item, Novo_Lock_Request)
+        elif self.tr_manager.waitForDataList[TR][0] == -1:
+            self.adicionarOPSPostergadas(trans.Id, 'r', item)
         elif (not item in chaves):
             #Significa que não há Pedido de bloqueio para este item
             self.Lock_Table[item] = Novo_Lock_Request
@@ -442,7 +452,9 @@ class Lock_Manager():
             if self.tipo_Prevencao == 1:
                 self.waitDie(TR, item, Novo_Lock_Request)
             else:
-                self.woundWait(TR, item, Novo_Lock_Request)   
+                self.woundWait(TR, item, Novo_Lock_Request)
+        elif  self.tr_manager.waitForDataList[TR][0] == -1:
+            self.adicionarOPSPostergadas(trans.Id, 'w', item)
         elif (not item in chaves):
             #Significa que não há Pedido de bloqueio para este item
             self.Lock_Table[item] = Novo_Lock_Request
@@ -565,14 +577,11 @@ class Lock_Manager():
                                 self.tr_manager.eliminarArestaGrafo(transacao)
                             #Apagar o Bloqueio em questão da WaitQ   
                             if Anterior == None:
-                                #print("TESTE 1")
                                 self.WaitQ[item_liberado] = Corrente.prox
                                 Corrente = None
                             elif Seguinte == None:
-                                #print("TESTE 2")
                                 Anterior.prox = None
                             else:
-                                #print("TESTE 3")
                                 Anterior.prox = Corrente.prox
                             #Mover bloqueio excluido para a LockTable
                             aux_Excluir.prox = None
@@ -728,5 +737,4 @@ class Lock_Manager():
         for OP in self.OPS:
             self.controleOP(OP)
         
-        print(self.CommitsEmEspera)
         print("História Finalizada!")
