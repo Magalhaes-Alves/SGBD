@@ -4,7 +4,7 @@ from Lock_Request import Lock_Request
 
 
 class Lock_Manager():
-    def __init__(self, OPS):
+    def __init__(self, OPS, tipo_Prevencao):
         self._Lock_Table = {}
         """
         Neste dicionário, a chave é o item e o valor relativo a uma chave é a lista de Lock_Requests associados àquele item.
@@ -19,6 +19,11 @@ class Lock_Manager():
         self.tr_manager = Tr_Manager()
         self._OPS = OPS
         self._OPS_Postergadas = {}
+        self._tipo_Prevencao = tipo_Prevencao
+
+    @property
+    def tipo_Prevencao(self):
+        return self._tipo_Prevencao
 
     @property
     def OPS(self):
@@ -114,9 +119,12 @@ class Lock_Manager():
         item = Lock_Request_Aux.item
 
         #Cria as listas de operações postergadas para cada um
+        print("PORRA")
+        print(transacoes)
         for transacao in transacoes:
             self.OPS_Postergadas[transacao] = []
-        self.OPS_Postergadas[TR_ID] = []
+        """if TR_ID not in transacoes:
+            self.OPS_Postergadas[TR_ID] = []"""
         i = 0
         
         while(self.OPS[i].tipo[0] != modo or self.OPS[i].tipo[1] != TR_ID or self.OPS[i].item !=item):
@@ -175,14 +183,29 @@ class Lock_Manager():
             
             i+=1
         
-        self.OPS_Postergadas[self.OPS[i].tipo[1]].append(self.OPS[i])
+        #self.OPS_Postergadas[self.OPS[i].tipo[1]].append(self.OPS[i])
         for transacao in transacoes:
             self.tr_manager.waitForDataList[transacao] = [-1]
-
+        if TR_ID not in transacoes:
+            return True
+        else:
+            self.OPS_Postergadas[self.OPS[i].tipo[1]].append(self.OPS[i])
 
     def rollBack(self, transacoes,Lock_Request_Postergado):
         #Deve-se colocar as operações relativas a trans_Adicionada na fila de transações postergadas
-        self.postergarTR(Lock_Request_Postergado, transacoes)
+        if(self.postergarTR(Lock_Request_Postergado, transacoes)):
+            chaves = self.Lock_Table.keys()
+            if Lock_Request_Postergado.item in chaves:
+                aux_Lock  = self.Lock_Table[Lock_Request_Postergado.item]
+                while(aux_Lock.prox!=None):
+                    aux_Lock = aux_Lock.prox
+                aux_Lock.prox = Lock_Request_Postergado
+            else:
+                self.Lock_Table[Lock_Request_Postergado.item] = Lock_Request_Postergado
+        print("TESTE PEDO:")
+
+        self.Printar_Lock_Table()
+        self.printar_WaitQ()
         itensLiberados = []
         for transacao in transacoes:
             for operacao in self.OPS_Postergadas[transacao]:
@@ -243,7 +266,7 @@ class Lock_Manager():
 
             if trans_Adicionada.Ts > aux_Trans.Ts and aux_Lock.modo == 'X':
                 #A transação de trans_Adicionada deve ser postergada devido a uma situação de ROLLBACK
-                print(f"RollBack TS({trans_Adicionada.Id})<TS({aux_Trans.Id})")
+                print(f"RollBack TS({trans_Adicionada.Id})>TS({aux_Trans.Id})")
                 #print(f"Novo:{Novo_Lock_Request.item}")
                 #print(f"Chaves:{self.WaitQ.keys()}")
                 if Novo_Lock_Request.item in self.WaitQ.keys():
@@ -286,8 +309,11 @@ class Lock_Manager():
     
 
     def woundWait(self,TR, item, Novo_Lock_Request):
+        self.Printar_Lock_Table()
         trans_Adicionada = self.tr_manager.get_TR(TR)
         #Transação que ocasionou a execução do wait-die
+        transRollBack = []
+        
         trans_Enfileirada = self.tr_manager.buscar_TR_por_Id(Novo_Lock_Request.TR_Id)
         #Pega o TR e na linha seguinte pega a transação em si
         if trans_Enfileirada!=-1:
@@ -301,29 +327,37 @@ class Lock_Manager():
         count = 0
         
         while(aux_Lock != None):
+            
             aux_Trans = self.tr_manager.buscar_TR_por_Id(aux_Lock.TR_Id)
             #Pega o TR e na linha seguinte pega a transação em si
             aux_Trans = self.tr_manager.get_TR(aux_Trans)
             
-
-            if trans_Adicionada.Ts > aux_Trans.Ts and aux_Lock.modo == 'X':
+            """print(f"TransAdicionada:{trans_Adicionada.Ts}")
+            print(Novo_Lock_Request.modo )
+            print(f"Aux:{aux_Trans.Ts}")"""
+            if trans_Adicionada.Ts < aux_Trans.Ts and Novo_Lock_Request.modo =='X':
                 #A transação de trans_Adicionada deve ser postergada devido a uma situação de ROLLBACK
-                print(f"RollBack TS({trans_Adicionada.Id})<TS({aux_Trans.Id})")
-                #print(f"Novo:{Novo_Lock_Request.item}")
-                #print(f"Chaves:{self.WaitQ.keys()}")
-                if Novo_Lock_Request.item in self.WaitQ.keys():
-                    listaparam = self.WaitQ[Novo_Lock_Request.item]
-                else:
-                    listaparam = Novo_Lock_Request.item
-                self.tr_manager.printarGrafo(listaparam)
-                self.rollBack([trans_Adicionada.Id], Novo_Lock_Request)
-                self.tr_manager.printarGrafo()
-                return
-
-            count += 1
+                count+=1
+                transRollBack.append(aux_Trans.Id)
+                
             aux_Lock = aux_Lock.prox
+        print("TransRollBACK:")
+        print(transRollBack)
+        self.Printar_Lock_Table()
+        if count>0:
+            transRollBack = list(set(transRollBack))
+            for transacao in transRollBack:
+                print(f"RollBack TS({trans_Adicionada.Id})<TS({transacao})")
             
-        
+            if Novo_Lock_Request.item in self.WaitQ.keys():
+                listaparam = self.WaitQ[Novo_Lock_Request.item]
+            else:
+                listaparam = Novo_Lock_Request.item
+            self.tr_manager.printarGrafo(listaparam)
+            self.rollBack(transRollBack, Novo_Lock_Request)
+            self.tr_manager.printarGrafo()
+            return
+
         #Coloca na Lista de Espera
         print("Em espera")
         self.tr_manager.waitForDataList[TR][0] = 0
@@ -361,22 +395,36 @@ class Lock_Manager():
         
         #Será que a transação em questão está com uma operação anterior em espera?
         if self.tr_manager.waitForDataList[TR][0] == 0:
-            self.waitDie(TR, item, Novo_Lock_Request)
+            if self.tipo_Prevencao == 1:
+                self.waitDie(TR, item, Novo_Lock_Request)
+            else:
+                self.woundWait(TR, item, Novo_Lock_Request)
         elif (not item in chaves):
             #Significa que não há Pedido de bloqueio para este item
             self.Lock_Table[item] = Novo_Lock_Request
             print("OK")
         elif self.Lock_Table[item].modo == 'S':
             """Se todos os bloqueios forem do tipo compartilhado, adiciona operação no final"""
-            
-            aux = self.Lock_Table[item]
-            while(aux.prox !=None):
-                aux = aux.prox
-            aux.prox = Novo_Lock_Request
-            print("OK")
+            aux_Lock = self.Lock_Table[item]
+            aux_Cond = False
+            while(aux_Lock.prox!=None and aux_Cond==False):
+                if(aux_Lock.prox.modo=='X'):
+                    aux_Cond = True
+                aux_Lock = aux_Lock.prox
+            if aux_Cond ==False:
+                aux_Lock.prox = Novo_Lock_Request
+                print("OK")
+            else:
+                if self.tipo_Prevencao == 1:
+                    self.waitDie(TR, item, Novo_Lock_Request)
+                else:
+                    self.woundWait(TR, item, Novo_Lock_Request)
         else:
             #Situação em que self.Lock_Table[item].modo == 'D'
-            self.waitDie(TR, item, Novo_Lock_Request)
+            if self.tipo_Prevencao == 1:
+                self.waitDie(TR, item, Novo_Lock_Request)
+            else:
+                self.woundWait(TR, item, Novo_Lock_Request)
 
         self.Escrever_Lock_Table()
 
@@ -391,15 +439,36 @@ class Lock_Manager():
 
         #Será que a transação em questão está com uma operação anterior em espera?
         if self.tr_manager.waitForDataList[TR][0] == 0:
-            self.waitDie(TR, item, Novo_Lock_Request)   
+            if self.tipo_Prevencao == 1:
+                self.waitDie(TR, item, Novo_Lock_Request)
+            else:
+                self.woundWait(TR, item, Novo_Lock_Request)   
         elif (not item in chaves):
             #Significa que não há Pedido de bloqueio para este item
             self.Lock_Table[item] = Novo_Lock_Request
             print("OK")
+        elif self.Lock_Table[item].modo =='S' and self.tr_manager.buscar_TR_por_Id(self.Lock_Table[item].TR_Id)==TR:
+            aux_Lock = self.Lock_Table[item]
+            aux_Cond = False
+            while(aux_Lock.prox!=None and aux_Cond==False):
+                if(aux_Lock.prox.modo=='X' or self.tr_manager.buscar_TR_por_Id(aux_Lock.prox.TR_Id)!=TR):
+                    aux_Cond = True
+                aux_Lock = aux_Lock.prox
+            if aux_Cond ==False:
+                aux_Lock.prox = Novo_Lock_Request
+                print("OK")
+            else:
+                if self.tipo_Prevencao == 1:
+                    self.waitDie(TR, item, Novo_Lock_Request)
+                else:
+                    self.woundWait(TR, item, Novo_Lock_Request)
         else:
             #Senão , a página está bloqueada
             #Prevenção de Deadlock
-            self.waitDie(TR, item, Novo_Lock_Request)
+            if self.tipo_Prevencao == 1:
+                self.waitDie(TR, item, Novo_Lock_Request)
+            else:
+                self.woundWait(TR, item, Novo_Lock_Request)
         
         self.Escrever_Lock_Table()
 
@@ -541,7 +610,6 @@ class Lock_Manager():
 
     def commitar(self,commitExcluido, Aux=False):
         #Variável para entrar no loop a seguir e saber se alguma Transação foi commitada
-
         if int(commitExcluido)<0:
             TR_Aux = -1
         else:
@@ -639,6 +707,7 @@ class Lock_Manager():
                 Lock_aux = self.WaitQ[chave]
                 while(Lock_aux!=None and aux==False):
                     if Lock_aux.TR_Id == OP.item :
+                        self.printar_WaitQ()
                         print(f"C{OP.item} falhou(possui operacoes incompletas)\n")
                         aux = True
                     Lock_aux = Lock_aux.prox
@@ -658,5 +727,6 @@ class Lock_Manager():
         """
         for OP in self.OPS:
             self.controleOP(OP)
+        
         print(self.CommitsEmEspera)
         print("História Finalizada!")
