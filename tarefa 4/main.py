@@ -1,6 +1,7 @@
 from Log import Log
+from Recuperacao import Recuperacao
 
 
-logs = Log('in.txt')
+algoritmo = Recuperacao('in.txt')
 
-logs.mostrarLog()
+algoritmo.undo_no_redo()
