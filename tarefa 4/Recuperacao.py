@@ -11,3 +11,7 @@ class Recuperacao:
         self._undo =[]
         self._objetos = self._log.extraiObjetos()
 
+    
+    def undo_no_redo():
+       pass 
+    
