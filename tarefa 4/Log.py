@@ -14,7 +14,7 @@ class Log:
             print(f'[{self._log[i]}]\n')
 
     @property
-    def obterlog(self):
+    def log(self):
         return self._log
 
 
