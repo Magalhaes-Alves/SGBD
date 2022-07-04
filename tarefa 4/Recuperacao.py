@@ -6,72 +6,114 @@ class Recuperacao:
 
         self._log = Log(nome_arquivo_log)
 
-        self._undo =[]
-        self._rollback =[]
-        self._redo =[]
-        self._tabela_trasacao =[]
+        self._undo_list =[]
+        self._rollback_list =[]
+        self._redo_list =[]
+        self._tabela_transacao ={}
         self._objetos = self._log.extraiObjetos()
 
-        self.analise()
         self.undo_no_redo()
 
     
     def undo_no_redo(self):
         self.analise()
-
+        self.undo()
+        self.no_redo()
+        print(self.objetos)
     
     def analise(self):
-        aux = self.log.log
+        log_aux = self.log.log
         
         ativas = self.log.extrairTransacoes()
 
-        for i in range(len(aux)-1,-1,-1):
+        for i in range(len(log_aux)-1,-1,-1):
             
-            if aux[i][3] == 'a':
-                self.rollback.append(aux[i][2])
-                ativas.remove(aux[i][2])
+            if log_aux[i][3] == 'a':
+                self.rollback_list.append(log_aux[i][2])
+                ativas.remove(log_aux[i][2])
             
-            if aux[i][3] == 'c':
-               ativas.remove(aux[i][2]) 
+            if log_aux[i][3] == 'c':
+                ativas.remove(log_aux[i][2]) 
 
-        self.undo +=ativas
-        self.tabela_trasacao = dict.fromkeys(ativas)
-
-        for i in range(len(aux)-1,-1,-1):
-            if aux[i][2] in self.tabela_trasacao.keys() and self.tabela_trasacao[aux[i][2]] == None:
-                self.tabela_trasacao[aux[i][2]] = aux[i][0]
+        self.undo_list =ativas
+        
+        self.tabela_transacao = dict.fromkeys(ativas)
+        
+        
+        for i in range(len(log_aux)-1,-1,-1):
+            if log_aux[i][2] in self.tabela_transacao.keys() and self.tabela_transacao[log_aux[i][2]] == None:
+                self.tabela_transacao[log_aux[i][2]] = log_aux[i][0]
     
-    def undo():
-        pass
+    def undo(self):
+        #primeiro irei desfazer as operações que sofreram rollback
+        #print(self.objetos)
+        self.desfazer_alteracoes(self.rollback_list)
+        #print(self.objetos)
+
+        self.desfazer_alteracoes(self.undo_list)
+
+    def desfazer_alteracoes(self, trasacoes):
+        
+        if trasacoes ==[]:
+            return
+        
+        log_aux = self.log.log
+
+        for i in range(len(log_aux)-1,-1,-1):
+            if log_aux[i][2] in trasacoes and log_aux[i][3]=='w':
+                self.objetos[log_aux[i][4]] = log_aux[i][-2]
+
+    def no_redo(self):
+
+        self.refazer_alteracoes(self.undo_list+self.rollback_list)
+
+    def refazer_alteracoes(self, trasacoes):
+        if trasacoes ==[]:
+            return
+        
+        log_aux = self.log.log
+
+        for i in range(0,len(log_aux)-1):
+            if (not log_aux[i][2] in trasacoes) and log_aux[i][3]=='w':
+                self.objetos[log_aux[i][4]] = log_aux[i][-1]
+
+
+
 
     @property
     def log(self):
         return self._log
 
     @property
-    def rollback(self):
-        return self._rollback
-    
-    @rollback.setter
-    def rollback(self, novo):
-        self._rollback = novo
+    def rollback_list(self):
+        return self._rollback_list
     
     @property
-    def undo(self):
-        return self._undo
+    def undo_list(self):
+        return self._undo_list
     
-    @property
-    def redo(self):
-        return self._redo
-    
-    @undo.setter
-    def undo(self, novo):
-        self._undo = novo
+    @undo_list.setter
+    def undo_list(self, novo):
+        self._undo_list = novo
 
     @property
-    def tabela_trasacao(self):
-        return self._tabela_trasacao
+    def redo_list(self):
+        return self._redo_list
+    
+    @property
+    def tabela_transacao(self):
+        return self._tabela_transacao
 
-    @tabela_trasacao.setter
-    def tabela_trasacao(self, novo):
-        self._tabela_trasacao = novo
+    @tabela_transacao.setter
+    def tabela_transacao(self,novo):
+        self._tabela_transacao = novo
+
+    @property
+    def objetos(self):
+        return self._objetos
+
+    @property
+    def commit(self):
+        return self._commit
+
+    
