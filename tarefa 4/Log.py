@@ -19,6 +19,7 @@ class Log:
 
 
     def extrairTransacoes(self):
+        #Função para extrair as transações do Log percorrendo todo ele
         transacoes =[]
         for i in self._log:
             if not i[2] in transacoes:
@@ -28,6 +29,7 @@ class Log:
     def extraiObjetos (self):
         objetos={}
         for i in self._log:
+            #Percorre o log e atribui a label do objeto ao dicionário de objetos 
             if i[3] in 'wr':
                 objetos.setdefault(i[4],None)
         return objetos
