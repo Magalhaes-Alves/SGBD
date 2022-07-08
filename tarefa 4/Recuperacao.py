@@ -106,6 +106,16 @@ class Recuperacao:
         #Após isso, serão desfeitas as operações da lista Undo
         self.desfazer_alteracoes(self.undo_list)
 
+        log_aux = self.log.log
+        for i in range(0,len(log_aux)-1):
+            #Para situações em que só há operações de leitura sobre um objeto, a nossa função de análise não 
+            # identifica essa situação.Logo, é necessário fazer essa pequena gambiarra para identificar objetos que
+            #estão com none na lista de objetos, ou seja, ele participou da história, mas não houve operação de escrita
+            #sobre ele.
+            if(log_aux[i][3]=='r' and self.objetos[log_aux[i][4]] == None):
+                self.objetos[log_aux[i][4]] = log_aux[i][-1]
+
+
     def desfazer_alteracoes(self, trasacoes):
         
         if trasacoes ==[]:
@@ -140,4 +150,3 @@ class Recuperacao:
             # a operação seja de escrita, as alterações relativas àquela operação são refeitas. 
             if (not log_aux[i][2] in trasacoes) and log_aux[i][3]=='w':
                 self.objetos[log_aux[i][4]] = log_aux[i][-1]
-

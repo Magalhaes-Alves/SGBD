@@ -3,5 +3,5 @@ from Recuperacao import Recuperacao
 
 #Instancia a classe em que o algoritmo de recuperação será executado e passa
 #como parametro o nome do arquivo de entrada.
-algoritmo = Recuperacao('in2.txt')
+algoritmo = Recuperacao('in.txt')
 
